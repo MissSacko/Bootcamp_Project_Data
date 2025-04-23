@@ -46,6 +46,7 @@ def upload_file():
     try:
         data = pd.read_csv(file)
         X = data[["income", "spending_score"]]  # Sélectionner les colonnes
+        
         X_scaled = scaler.transform(X)
         clusters = model.predict(X_scaled)
         data["cluster"] = clusters  # Ajouter les clusters au DataFrame

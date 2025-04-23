@@ -1,187 +1,186 @@
-// import React, { useState, useEffect } from 'react';
-// import Papa from 'papaparse'; // Pour parser le CSV
-// import Plotly from 'plotly.js-dist-min'; // Graphiques interactifs
-// import './styles.css'; // Styles spécifiques
-
-// const Segmentation = () => {
-//   // États pour gérer les données et l'interface
-//   const [data, setData] = useState(null);
-//   const [segments, setSegments] = useState(null);
-//   const [loading, setLoading] = useState(false);
-//   const [error, setError] = useState(null);
-
-//   // 1. Gérer l'upload du CSV
-//   const handleFileUpload = (e) => {
-//     const file = e.target.files[0];
-//     if (!file) return;
-
-//     Papa.parse(file, {
-//       header: true,
-//       complete: (results) => {
-//         setData(results.data); // Stocke les données parsées
-//         setError(null); // Réinitialise les erreurs
-//       },
-//       error: (err) => setError("Erreur de lecture du CSV. Vérifiez le format."),
-//     });
-//   };
-
-//   // 2. Envoyer les données au backend (API Python/Flask)
-//   const runSegmentation = async () => {
-//     if (!data) {
-//       setError("Veuillez d'abord importer un fichier CSV.");
-//       return;
-//     }
-
-//     setLoading(true);
-//     try {
-//       const response = await fetch('http://localhost:5000/segment', {
-//         method: 'POST',
-//         headers: { 'Content-Type': 'application/json' },
-//         body: JSON.stringify({ data }),
-//       });
-//       const result = await response.json();
-//       setSegments(result.segments); // Reçoit les segments du backend
-//     } catch (err) {
-//       setError("Erreur lors de la segmentation. Vérifiez le backend.");
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   // 3. Afficher les résultats avec Plotly
-//   useEffect(() => {
-//     if (!segments) return;
-
-//     const plotData = [{
-//       x: segments.map(s => s.depenses),
-//       y: segments.map(s => s.revenu),
-//       mode: 'markers',
-//       type: 'scatter',
-//       marker: { 
-//         color: segments.map(s => s.cluster),
-//         size: 10,
-//       },
-//     }];
-
-//     const layout = {
-//       title: 'Segmentation Clientèle',
-//       xaxis: { title: 'Dépenses' },
-//       yaxis: { title: 'Revenu' },
-//     };
-
-//     Plotly.newPlot('segmentation-plot', plotData, layout);
-//   }, [segments]);
-
-//   return (
-//     <div className="segmentation-container">
-//       <h1> Segmentation Clientèle</h1>
-      
-//       {/* Section Upload */}
-//       <div className="upload-section">
-//         <h3>1. Importer un fichier CSV client</h3>
-//         <input type="file" accept=".csv" onChange={handleFileUpload} />
-//         {error && <p className="error">{error}</p>}
-//       </div>
-
-//       {/* Section Segmentation */}
-//       <div className="action-section">
-//         <h3>2. Lancer la segmentation</h3>
-//         <button onClick={runSegmentation} disabled={!data || loading}>
-//           {loading ? 'Traitement...' : 'Exécuter'}
-//         </button>
-//       </div>
-
-//       {/* Section Résultats */}
-//       <div className="results-section">
-//         <h3>3. Résultats</h3>
-//         {segments ? (
-//           <div id="segmentation-plot"></div>
-//         ) : (
-//           <p>Aucun résultat à afficher. Importez un CSV et lancez l'analyse.</p>
-//         )}
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default Segmentation;
-
+// SegmentationPage.js
 import React, { useState } from 'react';
-import axios from 'axios';
-import Plotly from 'plotly.js-dist-min';
+//import { useNavigate } from 'react-router-dom';
+import { Bar, Scatter } from 'react-chartjs-2';
+import { Chart, registerables } from 'chart.js';
+Chart.register(...registerables);
 
 const Segmentation = () => {
-  const [file, setFile] = useState(null);
-  const [results, setResults] = useState(null);
-  const [error, setError] = useState(null);
+    const [file, setFile] = useState(null);
+    const [results, setResults] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    //const navigate = useNavigate();
 
-  const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
-  };
+    const handleFileChange = (e) => {
+        setFile(e.target.files[0]);
+    };
 
-  const handleUpload = async () => {
-    console.log("Fichier sélectionné :", file); 
-    if (!file) {
-      setError("Veuillez sélectionner un fichier CSV.");
-      return;
-    }
-  
-      
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!file) {
+            setError('Please select a file');
+            return;
+        }
 
-    const formData = new FormData();
-    formData.append('file', file);
+        setLoading(true);
+        setError('');
 
-    try {
-      const response = await axios.post('http://localhost:5000/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      setResults(response.data);
-      plotResults(response.data);
-    } catch (err) {
-      
-      setError(err.response?.data?.error || "Erreur lors de l'upload.");
-      
-    }
-  };
+        const formData = new FormData();
+        formData.append('file', file);
 
-  const plotResults = (data) => {
-    const plotData = [{
-      x: data.data.map(d => d.income),
-      y: data.data.map(d => d.spending_score),
-      mode: 'markers',
-      type: 'scatter',
-      marker: {
-        color: data.clusters,
-        colorscale: 'Viridis',
-        size: 10,
-      },
-    }];
+        try {
+            const response = await fetch('http://localhost:8000/api/predict/', {
+                method: 'POST',
+                body: formData,
+                // headers are not needed when using FormData
+            });
 
-    Plotly.newPlot('plot', plotData, {
-      title: 'Segmentation des Clients',
-      xaxis: { title: 'Revenu Annuel (k$)' },
-      yaxis: { title: 'Score de Dépenses (1-100)' },
-    });
-  };
+            if (!response.ok) {
+                throw new Error(await response.text());
+            }
 
-  return (
-    <div style={{ padding: '20px' }}>
-      <h1>Segmentation Clientèle</h1>
-      <input type="file" accept=".csv" onChange={handleFileChange} />
-      <button onClick={handleUpload}>Lancer la Segmentation</button>
-      
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      
-      <div id="plot" style={{ width: '100%', height: '500px' }}></div>
-      
-      {results && (
-        <div>
-          <h2>Résultats</h2>
-          <pre>{JSON.stringify(results.data.slice(0, 5), null, 2)}</pre>  {/* Affiche les 5 premières lignes */}
+            const data = await response.json();
+            setResults(data);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const renderClusterScatterPlot = () => {
+        if (!results) return null;
+
+        const clusterData = {
+            datasets: results.data.map(item => ({
+                label: `Cluster ${item.cluster}`,
+                data: [{
+                    x: item.feature1, // Remplacez par vos features
+                    y: item.feature2,
+                }],
+                backgroundColor: getClusterColor(item.cluster),
+            }))
+        };
+
+        return (
+            <Scatter 
+                data={clusterData}
+                options={{
+                    scales: {
+                        x: { title: { display: true, text: 'Feature 1' } },
+                        y: { title: { display: true, text: 'Feature 2' } },
+                    },
+                }}
+            />
+        );
+    };
+
+    const renderClusterDistribution = () => {
+        if (!results) return null;
+
+        const data = {
+            labels: Object.keys(results.cluster_counts),
+            datasets: [{
+                label: 'Cluster Distribution',
+                data: Object.values(results.cluster_counts),
+                backgroundColor: Object.keys(results.cluster_counts).map(cluster => 
+                    getClusterColor(parseInt(cluster))
+            )}]
+        };
+
+        return <Bar data={data} />;
+    };
+
+    const getClusterColor = (cluster) => {
+        const colors = [
+            'rgba(255, 99, 132, 0.6)',
+            'rgba(54, 162, 235, 0.6)',
+            'rgba(255, 206, 86, 0.6)',
+            'rgba(75, 192, 192, 0.6)',
+            'rgba(153, 102, 255, 0.6)',
+        ];
+        return colors[cluster % colors.length];
+    };
+
+    return (
+        <div class="container mx-auto p-4">
+            <h1 class="text-2xl font-bold mb-6">Customer Segmentation</h1>
+            
+            <form onSubmit={handleSubmit} class="mb-8">
+                <div class="mb-4">
+                    <label class="block mb-2 font-medium">
+                        Upload CSV File:
+                        <input 
+                            type="file" 
+                            accept=".csv"
+                            onChange={handleFileChange}
+                            class="block w-full mt-1 p-2 border rounded"
+                        />
+                    </label>
+                </div>
+                <button 
+                    type="submit" 
+                    disabled={loading}
+                    class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:bg-gray-400"
+                >
+                    {loading ? 'Processing...' : 'Segment Customers'}
+                </button>
+                {error && <p class="text-red-500 mt-2">{error}</p>}
+            </form>
+
+            {results && (
+                <div>
+                    <h2 class="text-xl font-semibold mb-4">Results</h2>
+                    
+                    <div class="mb-8">
+                        <h3 class="text-lg font-medium mb-2">Cluster Distribution</h3>
+                        <div class="bg-white p-4 rounded shadow">
+                            {renderClusterDistribution()}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-8">
+                        <h3 class="text-lg font-medium mb-2">Cluster Visualization</h3>
+                        <div class="bg-white p-4 rounded shadow">
+                            {renderClusterScatterPlot()}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-8">
+                        <h3 class="text-lg font-medium mb-2">Cluster Centers</h3>
+                        <pre class="bg-gray-100 p-4 rounded overflow-auto">
+                            {JSON.stringify(results.cluster_centers, null, 2)}
+                        </pre>
+                    </div>
+                    
+                    <div class="mb-8">
+                        <h3 class="text-lg font-medium mb-2">Raw Data with Clusters</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white border">
+                                <thead>
+                                    <tr>
+                                        {Object.keys(results.data[0]).map(key => (
+                                            <th key={key} class="py-2 px-4 border">{key}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {results.data.map((row, index) => (
+                                        <tr key={index}>
+                                            {Object.values(row).map((value, i) => (
+                                                <td key={i} class="py-2 px-4 border">{String(value)}</td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
-      )}
-    </div>
-  );
+    );
 };
 
 export default Segmentation;

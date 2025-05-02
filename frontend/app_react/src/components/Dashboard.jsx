@@ -56,8 +56,8 @@ function Dashboard() {
                 <div id="features" class="mx-auto max-w-6xl">
                     <p class="text-center text-base font-semibold leading-7 text-primary-500">RetailX Solutions </p>
                     <h2 class="text-center font-display text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
-                    Analysis of
-                    Data for Business
+                    Data Analysis
+                     for Business
                     </h2>
                     <ul class="mt-16 grid grid-cols-1 gap-6 text-center text-slate-700 md:grid-cols-3">
                         <li class="rounded-xl bg-white px-6 py-8 shadow-sm">
